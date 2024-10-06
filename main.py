@@ -51,7 +51,7 @@ def main():
 
     #display map
     with row1_col1:
-       
+       #Leaf Map
 
         m = leafmap.Map(center=[1.352083, 103.819836], zoom=11)
         m.add_basemap(basemap)
