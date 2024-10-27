@@ -10,11 +10,11 @@ if load_dotenv('.env'):
    #local developement
    OPENAI_KEY = os.getenv('OPENAI_API_KEY')
    OPENAI_MODEL = os.getenv('OPENAI_MODEL_NAME')
-   OPENAI_BASE =os.getenv('OPENAI_API_BASE')
+   #OPENAI_BASE =os.getenv('OPENAI_API_BASE')
 else:
    OPENAI_KEY = st.secrets['OPENAI_API_KEY']
    OPENAI_MODEL = st.secrets['OPENAI_MODEL_NAME']
-   OPENAI_BASE =st.secrets['OPENAI_API_BASE']
+   #OPENAI_BASE =st.secrets['OPENAI_API_BASE']
 
 # Pass the API Key to the OpenAI Client
 client = OpenAI(api_key= OPENAI_KEY)
