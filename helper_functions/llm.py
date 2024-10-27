@@ -3,16 +3,30 @@ import streamlit as st
 from dotenv import load_dotenv
 from openai import OpenAI
 import tiktoken
+from langchain_openai import ChatOpenAI
+
 
 if load_dotenv('.env'):
    #local developement
    OPENAI_KEY = os.getenv('OPENAI_API_KEY')
+   OPENAI_MODEL = os.getenv('OPENAI_MODEL_NAME')
+   OPENAI_BASE =os.getenv('OPENAI_API_BASE')
 else:
    OPENAI_KEY = st.secrets['OPENAI_API_KEY']
-   
+   OPENAI_MODEL = st.secrets['OPENAI_MODEL_NAME']
+   OPENAI_BASE =st.secrets['OPENAI_API_BASE']
 
 # Pass the API Key to the OpenAI Client
 client = OpenAI(api_key= OPENAI_KEY)
+
+#Working
+# langchain
+#llm = ChatOpenAI(temperature=0, model='gpt-4o-mini')
+llm = ChatOpenAI(temperature=0, model=OPENAI_MODEL)
+#Working
+
+#not working
+#llm = ChatOpenAI(temperature=0, model=OPENAI_MODEL, base_url=OPENAI_BASE)
 
 def get_embedding(input, model='text-embedding-3-small'):
     response = client.embeddings.create(
@@ -23,7 +37,7 @@ def get_embedding(input, model='text-embedding-3-small'):
 
 
 # This is the "Updated" helper function for calling LLM
-def get_completion(prompt, model="gpt-4o-mini", temperature=0, top_p=1.0, max_tokens=1024, n=1, json_output=False):
+def get_completion(prompt, model=OPENAI_MODEL, temperature=0, top_p=1.0, max_tokens=1024, n=1, json_output=False):
     if json_output == True:
       output_json_structure = {"type": "json_object"}
     else:
@@ -43,7 +57,7 @@ def get_completion(prompt, model="gpt-4o-mini", temperature=0, top_p=1.0, max_to
 
 
 # Note that this function directly take in "messages" as the parameter.
-def get_completion_by_messages(messages, model="gpt-4o-mini", temperature=0, top_p=1.0, max_tokens=1024, n=1):
+def get_completion_by_messages(messages, model=OPENAI_MODEL, temperature=0, top_p=1.0, max_tokens=1024, n=1):
     response = client.chat.completions.create(
         model=model,
         messages=messages,
@@ -58,11 +72,11 @@ def get_completion_by_messages(messages, model="gpt-4o-mini", temperature=0, top
 # This function is for calculating the tokens given the "message"
 # ⚠️ This is simplified implementation that is good enough for a rough estimation
 def count_tokens(text):
-    encoding = tiktoken.encoding_for_model('gpt-4o-mini')
+    encoding = tiktoken.encoding_for_model(OPENAI_MODEL)
     return len(encoding.encode(text))
 
 
 def count_tokens_from_message(messages):
-    encoding = tiktoken.encoding_for_model('gpt-4o-mini')
+    encoding = tiktoken.encoding_for_model(OPENAI_MODEL)
     value = ' '.join([x.get('content') for x in messages])
     return len(encoding.encode(value))
