@@ -98,12 +98,8 @@ def main():
                 response , trees_infos = process_user_message(user_prompt)
                 st.write(response)
                 st.divider()
-            
-                        
-                if df.count() > 0:
-                    df = pd.DataFrame(trees_infos)
-                else:
-                    df = treessg
+                df2 = pd.DataFrame(trees_infos)          
+                df = df2
 
             else:
                 response ="Please provide valid query"
@@ -126,9 +122,9 @@ def main():
         #selected_species = st.sidebar.selectbox("species_id",species_list)
 
 
-        with st.expander("TreesSG data"):
+        #with st.expander("TreesSG data"):
             
-            st.dataframe(df)
+            #st.dataframe(df)
             #st.dataframe(treessg)
         
         # plot all treessg
