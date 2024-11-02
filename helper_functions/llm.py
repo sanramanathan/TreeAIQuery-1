@@ -6,6 +6,8 @@ import tiktoken
 from langchain_openai import ChatOpenAI
 
 
+#embeddings_model =  (model='text-embedding-3-small')
+
 if load_dotenv('.env'):
    #local developement
    OPENAI_KEY = os.getenv('OPENAI_API_KEY')

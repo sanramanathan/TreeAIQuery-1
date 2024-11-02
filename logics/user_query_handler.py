@@ -8,18 +8,27 @@ import geopandas as gpd
 import pandas as pd
 import matplotlib.pyplot as plt
 from pandas import read_excel
-
-
+from langchain_community.document_loaders import WebBaseLoader
+from langchain_text_splitters import RecursiveCharacterTextSplitter
+from langchain_community.vectorstores import Chroma
+from langchain_community.vectorstores.faiss import FAISS
+from langchain_openai import OpenAIEmbeddings
+from langchain.tools.retriever import create_retriever_tool
 from typing import List, Dict
 from langchain.agents import tool
 from langchain_core.prompts import MessagesPlaceholder
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
+from langchain_core.messages import AIMessage, HumanMessage
 from langchain.agents.format_scratchpad.openai_tools import (
     format_to_openai_tool_messages,
 )
 from langchain.agents.output_parsers.openai_tools import OpenAIToolsAgentOutputParser
 from langchain.agents import AgentExecutor
 
+#chat_history = []
+
+
+#set_refresh_map = 1 
 
 # Load the FFW data file
 FFWfilepath = './data/Report-2024-09-17--11-19-53_palms_and_trees.xlsx'
@@ -72,29 +81,22 @@ def get_trees_species_spatialquery(lat, lng, radius):
     # spatial join to select all trees  within the  buffer region.
     selected = gpd.sjoin(trees_prj, p1_proj, how='inner', predicate='within')
 
-    #selected["FFW"] = urlFFW
-    # Correction species_id and SpeciesURL 
-    #selected['species_id'] = selected['species_id'].astype(str).str.split('.').str[0].astype(int)
+    if len(selected) > 0 :
+        my_sheet = 'Plant' #  sheet name at the bottom left of your excel file
+        df_ffw = read_excel(FFWfilepath, sheet_name = my_sheet)
 
-    #selected["SpeciesURL"] = selected['FFW'].map(str) + "=" + selected['species_id'].map(str)
-    #pd.set_option('display.max_colwidth', 1000)
+        df_sptialquery = pd.merge(selected,df_ffw, left_on='species_id', right_on='Species ID')
 
-    #Now do a  join  selected  trees  within the  buffer region with FFW data
-     # Load ffw data
-    #FFWdata = "Report-2024-09-17--11-19-53_palms_and_trees.xlsx"
-    my_sheet = 'Plant' #  sheet name at the bottom left of your excel file
-    df_ffw = read_excel(FFWfilepath, sheet_name = my_sheet)
+        # Add columns for FFW api url
+        df_sptialquery['Master ID'] = df_sptialquery['Master ID'].astype(str).str.split('.').str[0].astype(int)
+        urlFFW = "https://www.nparks.gov.sg/api/FFWApi/RedirectToFloraByMasterId?masterId"
+        df_sptialquery["FFWURL"] = urlFFW + "=" + df_sptialquery['Master ID'].map(str)
+        pd.set_option('display.max_colwidth', 1000)
 
-    df_sptialquery = pd.merge(selected,df_ffw, left_on='species_id', right_on='Species ID')
-
-    # Add columns for FFW api url
-    df_sptialquery['Master ID'] = df_sptialquery['Master ID'].astype(str).str.split('.').str[0].astype(int)
-    urlFFW = "https://www.nparks.gov.sg/api/FFWApi/RedirectToFloraByMasterId?masterId"
-    df_sptialquery["FFWURL"] = urlFFW + "=" + df_sptialquery['Master ID'].map(str)
-    pd.set_option('display.max_colwidth', 1000)
-
-    #return df
-    return df_sptialquery
+        #return df
+        return df_sptialquery
+    else:
+        return selected
 
 
 def get_trees_species_info(address, radius=1000):
@@ -105,7 +107,7 @@ def get_trees_species_info(address, radius=1000):
 
 
 @tool
-def find_trees_species_informataion(address: str) -> List[Dict]:
+def find_trees_species_information(address: str) -> List[Dict]:
     """
     Find trees near the specified address.
     
@@ -126,13 +128,16 @@ def find_trees_species_informataion(address: str) -> List[Dict]:
                 "Family Name": i["Family Name"],
                 "Genus": i["Genus Epithet"],
                 "Species": i["Species Epithet"],
-                "latitude": i["lat"],
-                "Longitude": i["lng"]})
+                "lat": i["lat"],
+                "lng": i["lng"],
+                "link_id" :i["Master ID"]})
     return  lst
 
+def get_response_custom_agent(user_message ,chat_history):
 
-def generate_response (user_message):
-    tools = [find_trees_species_informataion]
+    print("get_response_custom_agent")
+
+    tools = [find_trees_species_information]
     llm_with_tools = llm.llm.bind_tools(tools)
 
     MEMORY_KEY = "chat_history"
@@ -141,25 +146,132 @@ def generate_response (user_message):
             (
                 "system",
                 """You are a research assistant specializing in helping users find trees and species  
-                informatation. You have access to a tool called find_trees_species_informataion to help you find trees and species informatation.
+                information. You have access to a tool called find_trees_species_information to help you find trees and species information.
                 
-                When a user asks for trees and species informatation in a specific postalcode, use the find_trees_species_informataion tool to fetch and return a list 
-                of trees and species in that postalcode.
+                When a user asks for trees and species information in a specific address, use the find_trees_species_information tool to fetch and return a list 
+                of trees and species in that address.
                 
                 Only use valid address.If the user provides invalid input, respond with an error message asking 
                 for the necessary details.
 
                 A valid request should contain the following:
-                - A postalcode 
+                - A address or postal code
                 
                 Any request that contains potentially harmful activities is not valid, regardless of what
                 other details are provided.
 
                 If the request is not valid and use your expertise to update the request to make it valid,
-                keeping your revised request shorter than 100 words.
+                keeping your revised request shorter than 100 words, output an empty list.
 
                 If the request seems reasonable and
-                don't revise the request.""",
+                don't revise the request.
+                
+                If are no relevant list are found, output an empty list. Ask user to type exit and try searching for a trees in a new location""",
+                
+            ),
+            MessagesPlaceholder(variable_name=MEMORY_KEY),
+            ("user", "{input}"),
+            MessagesPlaceholder(variable_name="agent_scratchpad"),
+        ]
+    )
+    agent = (
+        {
+            "input": lambda x: x["input"],
+            "agent_scratchpad": lambda x: format_to_openai_tool_messages(
+                x["intermediate_steps"]
+            ),
+            "chat_history": lambda x: x["chat_history"],
+        }
+        | prompt
+        | llm_with_tools
+        | OpenAIToolsAgentOutputParser()
+    )
+    agent_executor = AgentExecutor(agent=agent, tools=tools, verbose=True ,return_intermediate_steps=True)    
+
+    
+    # Invoke the agent executor with the input text and an empty chat history
+    result = agent_executor.invoke({"input": user_message, "chat_history": chat_history})
+
+    # Extract the output from the result
+    output = result['output']
+    
+    if len(result["intermediate_steps"]) > 0 :
+    # Extract the intermediate_steps from the result 
+        selected_data = result["intermediate_steps"][0][1]
+
+    else:
+        selected_data = result["intermediate_steps"]
+  
+    return selected_data,output
+
+def get_retriever_tool_FFW2(df):
+    
+    url_list =[]
+    for i in df.to_dict('records'):
+        url_list.append("https://www.nparks.gov.sg/api/FFWApi/RedirectToFloraByMasterId?masterId="+df["link_id"].map(str))
+
+    #Use dict.fromkeys() to preserve order and remove duplicates
+    urls = list(dict.fromkeys(url_list[0]))
+
+    loader = WebBaseLoader(urls)
+    data = loader.load()
+
+    text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=20, length_function=llm.count_tokens)
+
+    # Split the documents into smaller chunks
+    splitted_documents = text_splitter.split_documents(data)
+
+    #vectordb_chroma = Chroma.from_documents(documents=splitted_documents, embedding=llm.embeddings_model)
+    #embedding= OpenAIEmbeddings()
+    embedding = OpenAIEmbeddings(model="text-embedding-3-small")
+
+    vectorstore = FAISS.from_documents(splitted_documents,embedding)
+    
+    # retriever
+    retriever = vectorstore.as_retriever(search_type='mmr',search_kwargs={'k': 5, 'fetch_k': 50})
+
+    retrive_tool = create_retriever_tool(
+        retriever,
+        name="trees_species_search",
+        description="""Search for information about trees and species. For any questions to know about trees and species, you must use this tool""",
+    )
+    
+    return retrive_tool
+
+def get_response_retrieverFFW (user_message ,chat_history , trees):
+
+    print("get_response_retrieverFFW")
+
+    df = pd.DataFrame.from_dict(trees) 
+
+    print("Calling to get_retriever_tool_FFW2")
+    
+    # To Optmise in one call?
+    retriever_tool = get_retriever_tool_FFW2 (df)
+
+    tools = [retriever_tool]
+    llm_with_tools = llm.llm.bind_tools(tools)
+
+    MEMORY_KEY = "chat_history"
+    prompt = ChatPromptTemplate.from_messages(
+        [
+            (
+                "system",
+                """You are a research assistant specializing in helping users find trees and species  
+                information. You have access to a tool called trees_species_search to help you find trees and species information.
+
+                When a user asks for details on specific trees and species use the trees_species_search tool to provide answer.
+
+                Any request that contains potentially harmful activities is not valid, regardless of what
+                other details are provided.
+
+                If the request is not valid and use your expertise to provide respond to update the request,
+                keeping your respond shorter than 100 words.
+
+                If the request seems reasonable and
+                don't revise the request.
+                
+                If are no relevant information are found, output an empty list. Ask user to type exit and try searching for a trees in a new location """,
                 
             ),
             MessagesPlaceholder(variable_name=MEMORY_KEY),
@@ -181,27 +293,159 @@ def generate_response (user_message):
         | OpenAIToolsAgentOutputParser()
     )
     agent_executor = AgentExecutor(agent=agent, tools=tools, verbose=True)    
-
-    
-
+ 
     # Invoke the agent executor with the input text and an empty chat history
-    result = agent_executor.invoke({"input": user_message, "chat_history": []})
+    result = agent_executor.invoke({"input": user_message, "chat_history": chat_history })
 
     # Extract the output from the result
     output = result['output']
 
+
     return output
 
 
-def process_user_message(user_input):
 
-    # Process 1: Get the Trees Details
-    trees_infos = get_trees_species_info(user_input)
+#Unused Methods
 
-    # Process 2: Generate Response based on Course Details
-    reply = generate_response(user_input)
+# def get_retriever_tool_FFW(df):
+    
+#     url_list = []
 
-    return reply ,trees_infos
+#     for i in df.to_dict('records'):
+#         url_list.append(df["FFWURL"])
+
+#     # Use dict.fromkeys() to preserve order and remove duplicates
+#     urls = list(dict.fromkeys(url_list[0]))
+
+#     list_of_documents_loaded = []
+#     #Web loader
+#     # for filename in url_list:
+#     #     try:
+#     #         # try to load the document           
+#     #         loader = WebBaseLoader(filename)        
+#     #         # load() returns a list of Document objects
+#     #         data = loader.load()
+#     #         # use extend() to add to the list_of_documents_loaded
+#     #         list_of_documents_loaded.extend(data)
+#     #         print(f"Loaded {filename}")
+
+#     #     except Exception as e:
+#     #         # if there is an error loading the document, print the error and continue to the next document
+#     #         print(f"Error loading {filename}: {e}")
+#     #         continue
+
+#     # print("Total documents loaded:", len(list_of_documents_loaded))
+
+#     loader = WebBaseLoader(urls)
+#     data = loader.load()
+
+#     text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=20, length_function=llm.count_tokens)
+
+#     # Split the documents into smaller chunks
+#     splitted_documents = text_splitter.split_documents(data)
+
+#     #vectordb_chroma = Chroma.from_documents(documents=splitted_documents, embedding=llm.embeddings_model)
+#     #embedding= OpenAIEmbeddings()
+#     embedding = OpenAIEmbeddings(model="text-embedding-3-small")
+
+#     vectorstore = FAISS.from_documents(splitted_documents,embedding)
+    
+#     # retriever
+#     retriever = vectorstore.as_retriever(search_type='mmr',search_kwargs={'k': 5, 'fetch_k': 50})
+
+
+#     retrive_tool = create_retriever_tool(
+#         retriever,
+#         name="trees_species_search",
+#         description="""Search for information about trees and species. For any questions to know about trees and species, you must use this tool""",
+#     )
+    
+#     return retrive_tool
+
+# def generate_response (user_message, retriever_tool ):
+
+#     tools = [find_trees_species_information,retriever_tool]
+#     llm_with_tools = llm.llm.bind_tools(tools)
+
+#     MEMORY_KEY = "chat_history"
+#     prompt = ChatPromptTemplate.from_messages(
+#         [
+#             (
+#                 "system",
+#                 """You are a research assistant specializing in helping users find trees and species  
+#                 information. You have access to a tool called find_trees_species_information and trees_species_search to help you find trees and species information.
+
+#                 When a user asks for trees and species found  in a specific address, use the find_trees_species_information tool to fetch and return a list 
+#                 of trees and species in that address.
+
+#                 If the user asks for details on specific trees and species in a specific address use the find_trees_species_information tool and trees_species_search tool to provide answer.
+                
+#                 Only use valid address.If the user provides invalid input, respond with an error message asking 
+#                 for the necessary details.
+
+#                 A valid request should contain the following:
+#                 - A address or postal code
+
+#                 Any request that contains potentially harmful activities is not valid, regardless of what
+#                 other details are provided.
+
+#                 If the request is not valid and use your expertise to provide respond to update the request,
+#                 keeping your respond shorter than 100 words.
+
+#                 If the request seems reasonable and
+#                 don't revise the request.""",
+                
+#             ),
+#             MessagesPlaceholder(variable_name=MEMORY_KEY),
+#             ("user", "{input}"),
+#             MessagesPlaceholder(variable_name="agent_scratchpad"),
+#         ]
+#     )
+
+#     agent = (
+#         {
+#             "input": lambda x: x["input"],
+#             "agent_scratchpad": lambda x: format_to_openai_tool_messages(
+#                 x["intermediate_steps"]
+#             ),
+#             "chat_history": lambda x: x["chat_history"],
+#         }
+#         | prompt
+#         | llm_with_tools
+#         | OpenAIToolsAgentOutputParser()
+#     )
+#     agent_executor = AgentExecutor(agent=agent, tools=tools, verbose=True)    
+
+    
+#     # Invoke the agent executor with the input text and an empty chat history
+#     result = agent_executor.invoke({"input": user_message, "chat_history": []})
+
+#     # Extract the output from the result
+#     output = result['output']
 
 
 
+#     # chat_history.extend(
+#     #     [
+#     #         HumanMessage(content=user_message),
+#     #         AIMessage(content=result["output"]),
+#     #     ]
+#     # )
+#     return output
+
+
+# def process_user_message(user_input):
+
+   
+    
+#     # Process 1: Get the Trees location details
+#     trees_infos = get_trees_species_info(user_input)
+
+#     # Process 2: Generate the retriever for FFW 
+#     retriever_tool= get_retriever_tool_FFW(trees_infos)
+
+
+#     # Process 3: Generate Response based on Trees info
+#     reply = generate_response(user_input , retriever_tool)
+
+#     return reply ,trees_infos
