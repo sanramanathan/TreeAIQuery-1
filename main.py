@@ -92,6 +92,10 @@ def main():
             #st.session_state.messages.append({"role": "assistant", "content": "Hi! ?"})
             #for msg in st.session_state.messages:
                 #st.chat_message(msg["role"]).write(msg["content"])
+            with st.chat_message("assistant"):
+                response = "Provide location to search for new tree information"
+                st.markdown(response)   
+            st.session_state.messages.append({"role": "assistant", "content": response})
                         
             st.session_state["messages"] = []
 

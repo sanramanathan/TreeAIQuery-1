@@ -12,11 +12,11 @@ if load_dotenv('.env'):
    #local developement
    OPENAI_KEY = os.getenv('OPENAI_API_KEY')
    OPENAI_MODEL = os.getenv('OPENAI_MODEL_NAME')
-   #OPENAI_BASE =os.getenv('OPENAI_API_BASE')
+   OPENAI_BASE =os.getenv('OPENAI_API_BASE')
 else:
    OPENAI_KEY = st.secrets['OPENAI_API_KEY']
    OPENAI_MODEL = st.secrets['OPENAI_MODEL_NAME']
-   #OPENAI_BASE =st.secrets['OPENAI_API_BASE']
+   OPENAI_BASE =st.secrets['OPENAI_API_BASE']
 
 # Pass the API Key to the OpenAI Client
 client = OpenAI(api_key= OPENAI_KEY)
@@ -24,11 +24,11 @@ client = OpenAI(api_key= OPENAI_KEY)
 #Working
 # langchain
 #llm = ChatOpenAI(temperature=0, model='gpt-4o-mini')
-llm = ChatOpenAI(temperature=0, model=OPENAI_MODEL)
+#llm = ChatOpenAI(temperature=0, model=OPENAI_MODEL)
 #Working
 
-#not working
-#llm = ChatOpenAI(temperature=0, model=OPENAI_MODEL, base_url=OPENAI_BASE)
+#With Govtech Keys
+llm = ChatOpenAI(temperature=0, model=OPENAI_MODEL, base_url=OPENAI_BASE)
 
 def get_embedding(input, model='text-embedding-3-small'):
     response = client.embeddings.create(
