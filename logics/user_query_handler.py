@@ -45,6 +45,9 @@ def get_coordinates (address):
         
         if response_dict["found"] != 0:
             return (response_dict["results"][0]["LATITUDE"], response_dict["results"][0]["LONGITUDE"])
+        
+        if response_dict["found"] == 0:
+            return "error"
 
     except:
         return "error"
