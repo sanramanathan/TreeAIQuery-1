@@ -9,7 +9,6 @@ env/
 ENV/
 .venv/
 .env
-.env_copy
 
 # Distribution / packaging
 build/
@@ -27,4 +26,6 @@ dist/
 #backup
 backup/
 
-.devcontainer/
+#Docker
+.dockerignore   
+Dockerfile
