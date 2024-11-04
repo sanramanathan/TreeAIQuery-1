@@ -56,7 +56,7 @@ def methodology_page():
     st.header("Flowcharts")
 
     # Placeholder for Chat with Information flowchart
-    st.image(".\data\generic.png", caption="Overview Flowchart")
+    st.image("./data/Whiteboard.png", caption="Overview Flowchart")
 
     st.write("""
     The application has two main use cases:
@@ -74,7 +74,7 @@ def methodology_page():
     3. The chatbot providing detailed tree information
     """)
     # Placeholder for Chat with Information flowchart
-    st.image(".\data\case1.png", caption="Chat with Information Flowchart")
+    st.image("./data/Whiteboard.png", caption="Chat with Information Flowchart")
 
     st.subheader("Intelligent Search Flowchart")
     st.write("""
@@ -84,7 +84,7 @@ def methodology_page():
     3. The chatbot displaying area-based tree statistics on an interactive map
     """)
     # Placeholder for Intelligent Search flowchart
-    st.image(".\data\case2.png", caption="Intelligent Search Flowchart")
+    st.image("./data/Whiteboard.png", caption="Intelligent Search Flowchart")
 
     st.write("""
     By implementing these methodologies, TreeQuery AI aims to enhance the efficiency and effectiveness 
