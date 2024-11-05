@@ -26,17 +26,17 @@ def methodology_page():
 
     st.header("LLM Integration")
     st.write("""
-    We utilize state-of-the-art LLM to process user queries. The models are 
+    We utilize state-of-the-art LLMs i.e GPT-4o mini to process user queries. The models are 
     fine-tuned for Singapore-specific tree and geographical data, enhancing their accuracy and reliability. 
     Retrieval-Augmented Generation (RAG) is employed to further improve model performance.
     """)
 
     st.header("Geospatial Processing")
     st.write("""
-    Efficient prompts for spatial queries and calculations are implemented to optimize response times, 
-    even with large datasets. The chatbot can handle a wide range of user queries in natural language 
-    and display results on an interactive map interface. This includes techniques such as reverse geocoding, 
-    buffer and overlay spatial analysis.
+    Efficient prompts for spatial queries and geospatial toolkit (OneMap API reverse geocoding, 
+    buffer analysis, spatial join and attribute join) are implemented to optimize response 
+    times, even with large datasets. The chatbot can handle user queries in natural language 
+    and display results on an interactive map interface.
     """)
 
     st.header("User Interface")
@@ -56,40 +56,43 @@ def methodology_page():
     st.header("Flowcharts")
 
     # Placeholder for Chat with Information flowchart
-    st.image("./data/generic.png", caption="Overview Flowchart")
+    st.image("./data/generic.png", caption="Generic flowchart")
 
     st.write("""
     The application has two main use cases:
-    1. Chat with information
-    2. Intelligent search
+    1. User searches for trees and tree information via postal code or address
+    2. After query 1, user asks for more information on a particular tree species
 
-    Each use case is illustrated with its own flowchart to depict the process flow.
+    Each use case is illustrated with its own flowchart to depict the process flow. Users can type "exit" 
+    to start a new query or continue with the existing conversation.
     """)
 
-    st.subheader("Chat with Information Flowchart")
+
+    st.subheader("Use Case 1: Tree Search by Location")
     st.write("""
     This flowchart illustrates the process of:
-    1. Users inputting queries
-    2. The LLM processing the queries
-    3. The chatbot providing detailed tree information
+    1. User inputs a query for trees in a specific area using postal code or address.
+    2. The Large Language Model (LLM) processes the query to understand the intent and extract relevant information.
+    3. The LLM activates a geospatial processing toolkit to search the TreesSG database for matching trees.
+    4. The system retrieves corresponding information from the Flora Fauna Web (FFW) database.
+    5. The application displays results by plotting tree locations on an interactive map and generating a text response.
     """)
-    # Placeholder for Chat with Information flowchart
-    st.image("./data/case1.png", caption="Chat with Information Flowchart")
+    # Placeholder for Tree Search by Location flowchart
+    st.image("./data/case1.png", caption="Tree Search by Location Flowchart")
 
-    st.subheader("Intelligent Search Flowchart")
+    st.subheader("Use Case 2: Detailed Tree Species Information")
     st.write("""
     This flowchart illustrates the process of:
-    1. Users querying an area
-    2. The LLM processing the spatial data
-    3. The chatbot displaying area-based tree statistics on an interactive map
+    1. User requests more information on a particular tree species identified in Use Case 1.
+    2. The system constructs a web URL for the specific tree species on the FFW website.
+    3. Using Retrieval-Augmented Generation (RAG):
+       a) The system accesses pre-loaded and embedded webpages from the FFW site, stored in a vector database.
+       b) The LLM uses the query to search the vector database for relevant information.
+       c) The system applies Maximum Marginal Relevance (MMR) to retrieve or summarize pertinent information.
+    4. The chatbot presents the retrieved or summarized information to the user.
     """)
-    # Placeholder for Intelligent Search flowchart
-    st.image("./data/case2.png", caption="Intelligent Search Flowchart")
-
-    st.write("""
-    By implementing these methodologies, TreeQuery AI aims to enhance the efficiency and effectiveness 
-    of urban forest management, contributing to better conservation and research efforts in Singapore.
-    """)
+    # Placeholder for Detailed Tree Species Information flowchart
+    st.image("./data/case2.png", caption="Detailed Tree Species Information Flowchart")
 
     with st.expander("Disclaimer"):
         st.write(

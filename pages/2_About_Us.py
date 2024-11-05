@@ -25,6 +25,8 @@ def about_us_page():
     - Risking oversight of important trends or issues
     - Hindering new or less experienced staff in accessing and interpreting data effectively
     """)
+    st.write("How can we develop an AI-powered system to streamline access, analysis, and visualisation of tree data from the TreesSG database, thereby enhancing the efficiency and effectiveness of NParks' research and conservation efforts while reducing time and resources spent on manually searching for data for analysis?")
+
 
     st.header("Our Solution")
     st.write("""
@@ -33,13 +35,21 @@ def about_us_page():
 
     st.subheader("Project Scope")
     st.write("""
-    Project Scope
+    - It aims to create a user-friendly interface that can process natural language queries, retrieve comprehensive tree data, and display results on an interactive map through the integration of advanced technologies including generative AI, Retrieval-Augmented Generation (RAG), and geospatial analysis.
+    - The scope includes developing capabilities for both NParks staff and public users, covering aspects such as tree identification, location mapping, and data analysis for research and conservation purposes.
     """)
 
-    st.subheader("Objectives")
+    st.header("Objectives")
     st.write("""
-    Objectives
+    1. Develop a chatbot that can accurately interpret and respond to natural language queries about trees
+    2. Create an efficient system for retrieving and visualising tree data from existing databases
+    3. Reduce the time and resources spent on manual data searches by NParks staff
+    4. Enhance the capacity for data-driven research and decision-making in urban forest management
+    5. Improve public access to information about local trees and green spaces
+    6. Support Singapore's vision as a City in Nature by fostering greater appreciation and understanding of the urban forest
     """)
+    
+
     st.subheader("Data sources")
     st.write("""
     - TreesSG database ( csv file)
